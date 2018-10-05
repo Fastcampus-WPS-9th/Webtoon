@@ -1,3 +1,11 @@
+import re
+
+import requests
+from bs4 import BeautifulSoup
+
+from data import Episode, Webtoon
+
+
 class Crawler:
     def show_webtoon_list(self):
         """
@@ -13,26 +21,31 @@ class Crawler:
         crawler.show_webtoon_list()
         :return:
         """
-        print('')
+        response = requests.get('https://comic.naver.com/webtoon/weekday.nhn')
+        html = response.text
+        soup = BeautifulSoup(html, 'lxml')
+        col_list = soup.select_one('div.list_area.daily_all').select('.col')
+        li_list = []
+        for col in col_list:
+            col_li_list = col.select('.col_inner ul > li')
+            li_list.extend(col_li_list)
+
+        webtoon_dict = {}
+        for li in li_list:
+            href = li.select_one('a.title')['href']
+            m = re.search(r'titleId=(\d+)', href)
+            webtoon_id = m.group(1)
+            title = li.select_one('a.title').get_text(strip=True)
+            url_thumbnail = li.select_one('.thumb > a > img')['src']
+
+            if title not in webtoon_dict:
+                new_webtoon = Webtoon(webtoon_id, title, url_thumbnail)
+                webtoon_dict[title] = new_webtoon
+
+        for title, webtoon in webtoon_dict.items():
+            print(title)
 
 
-class Webtoon:
-    def __init__(self, webtoon_id, title, url_thumbnail):
-        self.webtoon_id = webtoon_id
-        self.title = title
-        self.url_thumbnail = url_thumbnail
-
-    def __repr__(self):
-        return self.title
-
-
-class Episode:
-    def __init__(self, episode_id, title, url_thumbnail, rating, created_date):
-        self.episode_id = episode_id
-        self.title = title
-        self.url_thumbnail = url_thumbnail
-        self.rating = rating
-        self.created_date = created_date
-
-    def __repr__(self):
-        return self.title
+if __name__ == '__main__':
+    crawler = Crawler()
+    crawler.show_webtoon_list()
