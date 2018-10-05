@@ -1,2 +1,2 @@
 from .episode import Episode
-from .webtoon import Webtoon
+from .webtoon import *
