@@ -74,7 +74,7 @@ class Crawler:
         :return:
         """
         try:
-            self.webtoon_dict[title]
+            return self.webtoon_dict[title]
         except KeyError:
             raise WebtoonNotExist(title)
 
@@ -85,4 +85,5 @@ class Crawler:
 
 if __name__ == '__main__':
     crawler = Crawler()
-    crawler.show_webtoon_list()
+    w = crawler.get_webtoon('유미의 세포들')
+    print(w.episode_dict)
