@@ -126,7 +126,20 @@ class Webtoon:
         if not self._episode_dict:
             # 비어있는 경우
             # 1페이지부터 끝페이지까지 get_page_episode_dict를 실행한 결과를 self._episode_dict에 추가
-            pass
+            page = 1
+            while True:
+                # while문을 반복하며 증가되는 page값을 사용해서 크롤링한 결과 dict및 다음 페이지 존재여부를 가져옴
+                result = get_page_episode_dict(page)
+                page_episode_dict = result['episode_dict']
+                # 결과 dict를 인스턴스의 _episode_dict에 업데이트
+                self._episode_dict.update(page_episode_dict)
+                # 다음 loop에서 증가한 page값을 사용하기 위해 값 설정
+                page += 1
+
+                # 결과에서 다음 페이지 존재여부를 판단, 없다면 break로 반복문 탈출
+                has_next = result['has_next']
+                if not has_next:
+                    break
         return self._episode_dict
 
     def get_episode(self, index):
