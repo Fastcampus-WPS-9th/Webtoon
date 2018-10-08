@@ -1,4 +1,5 @@
 import os
+import pickle
 import re
 
 import requests
@@ -8,8 +9,13 @@ from data import Episode, Webtoon, WebtoonNotExist
 
 
 class Crawler:
+    ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
+    SAVE_PATH = os.path.join(ROOT_PATH, 'saved_data')
+
     def __init__(self):
         self._webtoon_dict = {}
+        # 초기화 함수에서 저장 폴더를 만들어줌
+        os.makedirs(self.SAVE_PATH, exist_ok=True)
 
     def get_html(self):
         """
@@ -81,6 +87,18 @@ class Crawler:
     def show_webtoon_list(self):
         for title, webtoon in self.webtoon_dict.items():
             print(title)
+
+    def save(self):
+        # self._webtoon_dict객체를
+        # ./saved_data/cralwer.pickle 파일에 기록
+        with open(os.path.join(self.SAVE_PATH, 'crawler.pickle'), 'wb') as f:
+            pickle.dump(self._webtoon_dict, f)
+
+    def load(self):
+        # ./saved_data/crawler.pickle파일의 내용을 가지고
+        # self._webtoon_dict객체를 재구성
+        with open(os.path.join(self.SAVE_PATH, 'crawler.pickle'), 'rb') as f:
+            self._webtoon_dict = pickle.load(f)
 
 
 if __name__ == '__main__':

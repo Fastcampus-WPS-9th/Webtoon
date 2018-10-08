@@ -140,6 +140,7 @@ class Webtoon:
                 has_next = result['has_next']
                 if not has_next:
                     break
+            print(f'== {self.title}의 에피소드 목록을 크롤링 ==')
         return self._episode_dict
 
     def get_episode(self, index):
