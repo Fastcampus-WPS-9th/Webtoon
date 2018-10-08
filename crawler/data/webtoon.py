@@ -14,6 +14,7 @@ __all__ = (
 
 class Webtoon:
     TEST_WEBTOON_ID = 714834
+    EPISODE_LIST_BASE_URL = 'https://comic.naver.com/webtoon/list.nhn'
 
     def __init__(self, webtoon_id, title, url_thumbnail):
         self.webtoon_id = webtoon_id
@@ -24,9 +25,16 @@ class Webtoon:
     def __repr__(self):
         return self.title
 
-    @property
-    def url(self):
-        return f'https://comic.naver.com/webtoon/list.nhn?titleId={self.webtoon_id}'
+    def get_episode_list_url_params_dict(self, **kwargs):
+        # 기본적으로 {'titleId': <자신의 webtoon_id>}
+        #  인 dict를 리턴
+        # 키워드인자가 주어지면 해당 키워드인자를 추가한 dict를 리턴
+        # ex) 그냥 호출시 리턴: {'titleId': 234343}
+        #     get_epi..(page=1)로 호출시 리턴:
+        #       {'titleId': 234234, 'page': 1}
+        params = {'titleId': self.webtoon_id}
+        params.update(kwargs)
+        return params
 
     @property
     def episode_dict(self):
@@ -62,11 +70,23 @@ class Webtoon:
 
         :return:
         """
-        if not self._episode_dict:
-            # 비어있는 경우
-            # self.url (목록페이지 URL)에 HTTP요청 후, 받은 결과를 파싱 시작
-            response = requests.get(self.url)
+        def get_page_episode_dict(page):
+            """
+            :param page: 크롤링 할 페이지
+            :return: {
+                'has_next': <다음페이지가 있는지>',
+                'episode_dict': 'episode_id를 키, Episode인스턴스를 값으로 쓰는 dict
+            }
+            """
+            # 위에서 만든 메서드에서 리턴된 dict를 사용,
+            # requests를 이용한 요청에 GET parameters를 전달
+            response = requests.get(
+                self.EPISODE_LIST_BASE_URL,
+                params=self.get_episode_list_url_params_dict(page=page)
+            )
             soup = BeautifulSoup(response.text, 'lxml')
+            # 이 page에 해당하는 Episode들을 담을 dict
+            page_episode_dict = OrderedDict()
 
             # 에피소드 목록이 table.viewList의 각 'tr'요소 하나씩에 해당함
             table = soup.select_one('table.viewList')
@@ -90,12 +110,23 @@ class Webtoon:
                         rating=rating,
                         created_date=created_date,
                     )
-                    # 인스턴스의 _episode_dict사전에 episode_id (파싱데이터에서는 'no'변수)키로 인스턴스 할당
-                    self._episode_dict[no] = episode
+                    # 리턴해줄 dict변수에 값 할당
+                    page_episode_dict[no] = episode
                 except:
                     # 위 파싱에 실패하는 경우에는 무시 (tr이 의도와 다르게 생겼을때 실패함)
                     # 기왕이면 실패 로그를 쌓으면 좋음 (어떤 웹툰의 몇 번째 페이지 몇 번째 row시도중 실패했다를 텍스트 파일에)
                     pass
+
+            next_btn = soup.select_one('.paginate a.next')
+            return {
+                'episode_dict': page_episode_dict,
+                'has_next': bool(next_btn),
+            }
+
+        if not self._episode_dict:
+            # 비어있는 경우
+            # 1페이지부터 끝페이지까지 get_page_episode_dict를 실행한 결과를 self._episode_dict에 추가
+            pass
         return self._episode_dict
 
     def get_episode(self, index):
